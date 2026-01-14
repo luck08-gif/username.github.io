@@ -3,43 +3,35 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Trang tạm của luck08-gif</title>
+  <title>Catch the Square — luck08-gif</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <main class="card">
-    <h1 id="title">Xin chào, mình là luck08-gif</h1>
-    <p class="lead" id="subtitle">Đây là trang tạm để thử màu, chữ và tương tác.</p>
+    <h1>Catch the Square</h1>
+    <p class="lead">Click hoặc chạm vào ô vuông để ghi điểm. Cố gắng đạt điểm cao nhất trong thời gian!</p>
 
-    <section class="controls">
-      <label>Đổi tiêu đề:
-        <input id="titleInput" type="text" placeholder="Gõ tiêu đề mới..." />
-        <button id="applyTitle">Áp dụng</button>
+    <div class="hud">
+      <div>Time: <span id="time">30</span>s</div>
+      <div>Score: <span id="score">0</span></div>
+      <div>Best: <span id="best">0</span></div>
+    </div>
+
+    <div id="gameArea" class="game-area" aria-label="game area">
+      <!-- ô vuông sẽ xuất hiện ở đây -->
+    </div>
+
+    <div class="controls">
+      <button id="startBtn">Start</button>
+      <button id="restartBtn" disabled>Restart</button>
+      <label class="speed">Speed:
+        <input id="speedRange" type="range" min="300" max="1000" step="50" value="700">
       </label>
+    </div>
 
-      <label>Chọn màu chính:
-        <input id="accentColor" type="color" value="#4a90e2" />
-        <button id="applyColor">Áp dụng màu</button>
-      </label>
-
-      <label>Thêm mục:
-        <input id="newItem" type="text" placeholder="Nội dung..." />
-        <button id="addItem">Thêm</button>
-      </label>
-    </section>
-
-    <ul id="items" class="items">
-      <li>Ví dụ mục 1 <button class="remove">X</button></li>
-      <li>Ví dụ mục 2 <button class="remove">X</button></li>
-    </ul>
-
-    <p>
-      <a class="btn" href="#" id="sampleBtn">Nút mẫu</a>
-    </p>
-
-    <footer>Trang này được phục vụ bởi GitHub Pages — sửa file và đẩy lên để cập nhật.</footer>
+    <footer>Made with ♥ — GitHub Pages</footer>
   </main>
 
-  <script src="script.js" defer></script>
+  <script src="catch.js" defer></script>
 </body>
 </html>
