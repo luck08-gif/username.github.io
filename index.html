@@ -43,32 +43,36 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const menu = document.getElementById("menu");
 
-let dino, cactus, gravity = 0.6;
+let dino, cactus;
+let gravity = 0.6;
+let speed = 6;
 let score = 0;
 let playing = false;
 let countdown = 3;
 
 function resetGame() {
     dino = { x: 50, y: 150, w: 30, h: 30, v: 0, jump: false };
-    cactus = { x: 600, y: 150, w: 20, h: 40 };
+    cactus = { x: canvas.width, y: 150, w: 20, h: 40 };
     score = 0;
+    speed = 6;
 }
 
 resetGame();
 
 document.addEventListener("keydown", e => {
-    if (e.code === "Space" && !dino.jump && playing) {
-        dino.v = -10;
-        dino.jump = true;
+    if (e.code === "Space" && playing && !dino.jump) {
+        jump();
     }
 });
 
 canvas.addEventListener("click", () => {
-    if (!dino.jump && playing) {
-        dino.v = -10;
-        dino.jump = true;
-    }
+    if (playing && !dino.jump) jump();
 });
+
+function jump() {
+    dino.v = -11;
+    dino.jump = true;
+}
 
 function startCountdown() {
     menu.innerHTML = `<h1>${countdown}</h1>`;
@@ -79,8 +83,8 @@ function startCountdown() {
         } else {
             clearInterval(timer);
             menu.style.display = "none";
-            playing = true;
             countdown = 3;
+            playing = true;
             resetGame();
             update();
         }
@@ -110,7 +114,11 @@ function drawScore() {
 function gameOver() {
     playing = false;
     menu.style.display = "block";
-    menu.innerHTML = `<h1>GAME OVER</h1><p>Score: ${score}</p><button onclick="startCountdown()">RESTART</button>`;
+    menu.innerHTML = `
+        <h1>GAME OVER</h1>
+        <p>Score: ${score}</p>
+        <button onclick="startCountdown()">RESTART</button>
+    `;
 }
 
 function update() {
@@ -118,7 +126,7 @@ function update() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Dino
+    // Dino physics
     dino.v += gravity;
     dino.y += dino.v;
     if (dino.y >= 150) {
@@ -127,11 +135,12 @@ function update() {
         dino.jump = false;
     }
 
-    // Cactus
-    cactus.x -= 6;
+    // Cactus move
+    cactus.x -= speed;
     if (cactus.x < -cactus.w) {
-        cactus.x = canvas.width;
+        cactus.x = canvas.width + Math.random() * 200;
         score++;
+        if (score % 5 === 0) speed += 0.5; // tăng độ khó
     }
 
     // Collision
