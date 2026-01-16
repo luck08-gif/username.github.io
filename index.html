@@ -1,201 +1,117 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<title>Dino Survival</title>
-<style>
-body{
-    margin:0;
-    background:#0e0e0e;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
-    color:white;
-    font-family:Arial;
-}
-canvas{
-    background:linear-gradient(#222,#000);
-    border:2px solid #555;
-}
-#ui{
-    position:absolute;
-    text-align:center;
-}
-button{
-    padding:10px 25px;
-    font-size:18px;
-    cursor:pointer;
-}
-</style>
+  <meta charset="UTF-8">
+  <title>Dino Game</title>
+  <style>
+    body {
+      background: #222;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      color: white;
+      font-family: Arial;
+    }
+    canvas {
+      background: #333;
+      border: 2px solid #fff;
+    }
+  </style>
 </head>
 <body>
 
-<div id="ui">
-    <h1>DINO SURVIVAL</h1>
-    <button onclick="startGame()">START</button>
-    <h2 id="text"></h2>
-</div>
-
-<canvas id="game" width="900" height="320"></canvas>
+<canvas id="game" width="800" height="300"></canvas>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let running=false;
-let gravity=0.8;
-let baseSpeed=4;
-let speed=4;
-let score=0;
-let frame=0;
+// ===== LOAD ẢNH =====
+const dinoImg = new Image();
+dinoImg.src = "game1.jpg";
 
-const ground=260;
+const obsImg = new Image();
+obsImg.src = "obstacle.png";
 
-const dino={
-    x:100,y:ground-50,w:50,h:50,vy:0,leg:0,
-    jump(){
-        if(this.y>=ground-this.h) this.vy=-16;
-    }
+// ===== KHỦNG LONG =====
+let dino = {
+  x: 50,
+  y: 200,
+  w: 50,
+  h: 50,
+  vy: 0,
+  jump: false
 };
 
-let obstacles=[];
-let spawnCooldown=0;
+const gravity = 0.8;
 
-document.addEventListener("keydown",e=>{
-    if(e.code==="Space") dino.jump();
+// ===== CHƯỚNG NGẠI =====
+let obstacles = [];
+let speed = 4;
+let frame = 0;
+
+// ===== ĐIỀU KHIỂN =====
+document.addEventListener("keydown", e => {
+  if (e.code === "Space" && !dino.jump) {
+    dino.vy = -15;
+    dino.jump = true;
+  }
 });
 
-function startGame(){
-    let c=3;
-    document.getElementById("text").innerText=c;
-    const t=setInterval(()=>{
-        c--;
-        if(c>0) document.getElementById("text").innerText=c;
-        else{
-            clearInterval(t);
-            document.getElementById("ui").style.display="none";
-            reset();
-            running=true;
-        }
-    },1000);
-}
+function update() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-function reset(){
-    obstacles=[];
-    score=0;
-    speed=baseSpeed;
-    dino.y=ground-dino.h;
-    dino.vy=0;
-}
+  // ---- DINO ----
+  dino.y += dino.vy;
+  dino.vy += gravity;
 
-function spawnObstacle(){
-    const r=Math.random();
-    if(r<0.33) return {x:canvas.width,y:ground-35,w:45,h:35,type:"bone"};
-    if(r<0.66) return {x:canvas.width,y:ground-30,w:50,h:30,type:"lava"};
-    return {x:canvas.width,y:ground-40,w:40,h:40,type:"skull"};
-}
+  if (dino.y >= 200) {
+    dino.y = 200;
+    dino.jump = false;
+  }
 
-function drawDino(){
-    ctx.fillStyle="#00ff88";
-    // body
-    ctx.fillRect(dino.x,dino.y+15,40,25);
-    // head
-    ctx.fillRect(dino.x+25,dino.y,25,20);
+  ctx.drawImage(dinoImg, dino.x, dino.y, dino.w, dino.h);
 
-    // legs animation
-    ctx.strokeStyle="#00ff88";
-    ctx.lineWidth=4;
-    ctx.beginPath();
-    ctx.moveTo(dino.x+10,dino.y+40);
-    ctx.lineTo(dino.x+10+(dino.leg?8:-8),dino.y+50);
-    ctx.moveTo(dino.x+30,dino.y+40);
-    ctx.lineTo(dino.x+30+(dino.leg?-8:8),dino.y+50);
-    ctx.stroke();
-}
+  // ---- OBSTACLES ----
+  if (frame % 120 === 0) {
+    obstacles.push({
+      x: canvas.width,
+      y: 210,
+      w: 40,
+      h: 40
+    });
+  }
 
-function drawObstacle(o){
-    if(o.type==="bone"){
-        ctx.fillStyle="#ddd";
-        ctx.fillRect(o.x,o.y,o.w,o.h);
-        ctx.fillRect(o.x+15,o.y-10,15,10);
-    }
-    if(o.type==="lava"){
-        ctx.fillStyle="red";
-        ctx.shadowColor="orange";
-        ctx.shadowBlur=10;
-        ctx.fillRect(o.x,o.y,o.w,o.h);
-        ctx.shadowBlur=0;
-    }
-    if(o.type==="skull"){
-        ctx.fillStyle="#aaa";
-        ctx.beginPath();
-        ctx.arc(o.x+20,o.y+20,20,0,Math.PI*2);
-        ctx.fill();
-    }
-}
+  obstacles.forEach((o, i) => {
+    o.x -= speed;
+    ctx.drawImage(obsImg, o.x, o.y, o.w, o.h);
 
-function hit(a,b){
-    return a.x<a.x+a.w &&
-           a.x+a.w>b.x &&
-           a.y<a.y+a.h &&
-           a.y+a.h>b.y &&
-           a.x<b.x+b.w &&
-           a.y<b.y+b.h;
-}
-
-function loop(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    frame++;
-
-    // ground
-    ctx.fillStyle="#333";
-    ctx.fillRect(0,ground,canvas.width,5);
-
-    if(running){
-        dino.vy+=gravity;
-        dino.y+=dino.vy;
-        if(dino.y>ground-dino.h){
-            dino.y=ground-dino.h;
-            dino.vy=0;
-        }
-
-        if(frame%8===0) dino.leg=!dino.leg;
-
-        spawnCooldown--;
-        if(spawnCooldown<=0){
-            obstacles.push(spawnObstacle());
-            spawnCooldown=80+Math.random()*80; // xa hơn
-        }
-
-        for(let i=obstacles.length-1;i>=0;i--){
-            const o=obstacles[i];
-            o.x-=speed;
-            drawObstacle(o);
-
-            if(hit(dino,o)){
-                running=false;
-                document.getElementById("ui").style.display="block";
-                document.getElementById("text").innerText="GAME OVER\nScore: "+score;
-            }
-
-            if(o.x+o.w<0){
-                obstacles.splice(i,1);
-                score++;
-                speed=baseSpeed+score*0.15; // tăng dần
-            }
-        }
-
-        drawDino();
-
-        ctx.fillStyle="white";
-        ctx.fillText("Score: "+score,20,30);
+    // va chạm
+    if (
+      dino.x < o.x + o.w &&
+      dino.x + dino.w > o.x &&
+      dino.y < o.y + o.h &&
+      dino.y + dino.h > o.y
+    ) {
+      alert("GAME OVER");
+      location.reload();
     }
 
-    requestAnimationFrame(loop);
+    if (o.x + o.w < 0) obstacles.splice(i, 1);
+  });
+
+  // tăng độ khó
+  if (frame % 600 === 0) speed += 0.5;
+
+  frame++;
+  requestAnimationFrame(update);
 }
 
-loop();
+// đợi ảnh load xong
+dinoImg.onload = () => update();
 </script>
+
 </body>
 </html>
