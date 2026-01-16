@@ -5,24 +5,24 @@
   <title>Dino Game</title>
   <style>
     body {
-      background: #222;
+      margin: 0;
+      background: #111;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
-      margin: 0;
       color: white;
-      font-family: Arial;
+      font-family: Arial, sans-serif;
     }
     canvas {
-      background: #333;
-      border: 2px solid #fff;
+      background: linear-gradient(#222, #000);
+      border: 2px solid #555;
     }
   </style>
 </head>
 <body>
 
-<canvas id="game" width="800" height="300"></canvas>
+<canvas id="game" width="800" height="250"></canvas>
 
 <script>
 const canvas = document.getElementById("game");
@@ -35,82 +35,111 @@ dinoImg.src = "game1.jpg";
 const obsImg = new Image();
 obsImg.src = "obstacle.png";
 
-// ===== KHỦNG LONG =====
-let dino = {
+let imagesLoaded = 0;
+dinoImg.onload = () => imagesLoaded++;
+obsImg.onload = () => imagesLoaded++;
+
+// ===== GAME OBJECT =====
+const groundY = 200;
+
+const dino = {
   x: 50,
-  y: 200,
+  y: groundY - 50,
   w: 50,
   h: 50,
   vy: 0,
   jump: false
 };
 
-const gravity = 0.8;
+let obstacle = {
+  x: 800,
+  y: groundY - 40,
+  w: 40,
+  h: 40
+};
 
-// ===== CHƯỚNG NGẠI =====
-let obstacles = [];
 let speed = 4;
-let frame = 0;
+let score = 0;
+let gameOver = false;
 
-// ===== ĐIỀU KHIỂN =====
+// ===== INPUT =====
 document.addEventListener("keydown", e => {
-  if (e.code === "Space" && !dino.jump) {
-    dino.vy = -15;
+  if ((e.code === "Space" || e.code === "ArrowUp") && !dino.jump) {
+    dino.vy = -12;
     dino.jump = true;
   }
 });
 
+// ===== UPDATE =====
 function update() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (gameOver) return;
 
-  // ---- DINO ----
+  // Dino physics
+  dino.vy += 0.6;
   dino.y += dino.vy;
-  dino.vy += gravity;
 
-  if (dino.y >= 200) {
-    dino.y = 200;
+  if (dino.y >= groundY - dino.h) {
+    dino.y = groundY - dino.h;
+    dino.vy = 0;
     dino.jump = false;
   }
 
-  ctx.drawImage(dinoImg, dino.x, dino.y, dino.w, dino.h);
+  // Obstacle move
+  obstacle.x -= speed;
 
-  // ---- OBSTACLES ----
-  if (frame % 120 === 0) {
-    obstacles.push({
-      x: canvas.width,
-      y: 210,
-      w: 40,
-      h: 40
-    });
+  if (obstacle.x + obstacle.w < 0) {
+    obstacle.x = canvas.width + Math.random() * 200;
+    score++;
+    speed += 0.2; // càng về sau càng nhanh
   }
 
-  obstacles.forEach((o, i) => {
-    o.x -= speed;
-    ctx.drawImage(obsImg, o.x, o.y, o.w, o.h);
-
-    // va chạm
-    if (
-      dino.x < o.x + o.w &&
-      dino.x + dino.w > o.x &&
-      dino.y < o.y + o.h &&
-      dino.y + dino.h > o.y
-    ) {
-      alert("GAME OVER");
-      location.reload();
-    }
-
-    if (o.x + o.w < 0) obstacles.splice(i, 1);
-  });
-
-  // tăng độ khó
-  if (frame % 600 === 0) speed += 0.5;
-
-  frame++;
-  requestAnimationFrame(update);
+  // Collision
+  if (
+    dino.x < obstacle.x + obstacle.w &&
+    dino.x + dino.w > obstacle.x &&
+    dino.y < obstacle.y + obstacle.h &&
+    dino.y + dino.h > obstacle.y
+  ) {
+    gameOver = true;
+  }
 }
 
-// đợi ảnh load xong
-dinoImg.onload = () => update();
+// ===== DRAW =====
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Ground
+  ctx.strokeStyle = "#666";
+  ctx.beginPath();
+  ctx.moveTo(0, groundY);
+  ctx.lineTo(canvas.width, groundY);
+  ctx.stroke();
+
+  // Score
+  ctx.fillStyle = "white";
+  ctx.fillText("Score: " + score, 10, 20);
+
+  // Chỉ vẽ ảnh khi load xong
+  if (imagesLoaded >= 2) {
+    ctx.drawImage(dinoImg, dino.x, dino.y, dino.w, dino.h);
+    ctx.drawImage(obsImg, obstacle.x, obstacle.y, obstacle.w, obstacle.h);
+  }
+
+  if (gameOver) {
+    ctx.fillStyle = "red";
+    ctx.font = "20px Arial";
+    ctx.fillText("GAME OVER - F5 để chơi lại", 250, 120);
+  }
+}
+
+// ===== LOOP =====
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
 </script>
 
 </body>
