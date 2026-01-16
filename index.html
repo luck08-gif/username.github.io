@@ -4,29 +4,29 @@
 <meta charset="UTF-8">
 <title>Dino Survival</title>
 <style>
-    body {
-        margin: 0;
-        background: #111;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        color: white;
-        font-family: Arial, sans-serif;
-    }
-    canvas {
-        background: linear-gradient(#222, #000);
-        border: 2px solid #555;
-    }
-    #ui {
-        position: absolute;
-        text-align: center;
-    }
-    button {
-        padding: 12px 25px;
-        font-size: 18px;
-        cursor: pointer;
-    }
+body{
+    margin:0;
+    background:#0e0e0e;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    color:white;
+    font-family:Arial;
+}
+canvas{
+    background:linear-gradient(#222,#000);
+    border:2px solid #555;
+}
+#ui{
+    position:absolute;
+    text-align:center;
+}
+button{
+    padding:10px 25px;
+    font-size:18px;
+    cursor:pointer;
+}
 </style>
 </head>
 <body>
@@ -34,145 +34,168 @@
 <div id="ui">
     <h1>DINO SURVIVAL</h1>
     <button onclick="startGame()">START</button>
-    <h2 id="countdown"></h2>
+    <h2 id="text"></h2>
 </div>
 
-<canvas id="game" width="800" height="300"></canvas>
+<canvas id="game" width="900" height="320"></canvas>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let gameRunning = false;
-let gravity = 0.8;
-let speed = 6;
-let score = 0;
+let running=false;
+let gravity=0.8;
+let baseSpeed=4;
+let speed=4;
+let score=0;
+let frame=0;
 
-const dino = {
-    x: 80,
-    y: 220,
-    w: 40,
-    h: 50,
-    vy: 0,
-    jump() {
-        if (this.y >= 220) this.vy = -15;
+const ground=260;
+
+const dino={
+    x:100,y:ground-50,w:50,h:50,vy:0,leg:0,
+    jump(){
+        if(this.y>=ground-this.h) this.vy=-16;
     }
 };
 
-let obstacles = [];
+let obstacles=[];
+let spawnCooldown=0;
 
-document.addEventListener("keydown", e => {
-    if (e.code === "Space") dino.jump();
+document.addEventListener("keydown",e=>{
+    if(e.code==="Space") dino.jump();
 });
 
-function startGame() {
-    document.getElementById("ui").style.display = "block";
-    let count = 3;
-    document.getElementById("countdown").innerText = count;
-
-    const timer = setInterval(() => {
-        count--;
-        if (count > 0) {
-            document.getElementById("countdown").innerText = count;
-        } else {
-            clearInterval(timer);
-            document.getElementById("ui").style.display = "none";
-            resetGame();
-            gameRunning = true;
+function startGame(){
+    let c=3;
+    document.getElementById("text").innerText=c;
+    const t=setInterval(()=>{
+        c--;
+        if(c>0) document.getElementById("text").innerText=c;
+        else{
+            clearInterval(t);
+            document.getElementById("ui").style.display="none";
+            reset();
+            running=true;
         }
-    }, 1000);
+    },1000);
 }
 
-function resetGame() {
-    obstacles = [];
-    score = 0;
-    dino.y = 220;
-    dino.vy = 0;
+function reset(){
+    obstacles=[];
+    score=0;
+    speed=baseSpeed;
+    dino.y=ground-dino.h;
+    dino.vy=0;
 }
 
-function randomObstacle() {
-    const type = Math.floor(Math.random() * 3);
+function spawnObstacle(){
+    const r=Math.random();
+    if(r<0.33) return {x:canvas.width,y:ground-35,w:45,h:35,type:"bone"};
+    if(r<0.66) return {x:canvas.width,y:ground-30,w:50,h:30,type:"lava"};
+    return {x:canvas.width,y:ground-40,w:40,h:40,type:"skull"};
+}
 
-    if (type === 0) {
-        // XƯƠNG
-        return { x: 800, y: 230, w: 40, h: 40, type: "bone" };
+function drawDino(){
+    ctx.fillStyle="#00ff88";
+    // body
+    ctx.fillRect(dino.x,dino.y+15,40,25);
+    // head
+    ctx.fillRect(dino.x+25,dino.y,25,20);
+
+    // legs animation
+    ctx.strokeStyle="#00ff88";
+    ctx.lineWidth=4;
+    ctx.beginPath();
+    ctx.moveTo(dino.x+10,dino.y+40);
+    ctx.lineTo(dino.x+10+(dino.leg?8:-8),dino.y+50);
+    ctx.moveTo(dino.x+30,dino.y+40);
+    ctx.lineTo(dino.x+30+(dino.leg?-8:8),dino.y+50);
+    ctx.stroke();
+}
+
+function drawObstacle(o){
+    if(o.type==="bone"){
+        ctx.fillStyle="#ddd";
+        ctx.fillRect(o.x,o.y,o.w,o.h);
+        ctx.fillRect(o.x+15,o.y-10,15,10);
     }
-    if (type === 1) {
-        // DUNG NHAM
-        return { x: 800, y: 240, w: 50, h: 30, type: "lava" };
+    if(o.type==="lava"){
+        ctx.fillStyle="red";
+        ctx.shadowColor="orange";
+        ctx.shadowBlur=10;
+        ctx.fillRect(o.x,o.y,o.w,o.h);
+        ctx.shadowBlur=0;
     }
-    // ĐẦU LÂU
-    return { x: 800, y: 235, w: 35, h: 35, type: "skull" };
-}
-
-function drawDino() {
-    ctx.fillStyle = "#0f0";
-    ctx.fillRect(dino.x, dino.y, dino.w, dino.h);
-}
-
-function drawObstacle(o) {
-    if (o.type === "bone") {
-        ctx.fillStyle = "#ccc";
-    } else if (o.type === "lava") {
-        ctx.fillStyle = "red";
-    } else {
-        ctx.fillStyle = "#aaa";
+    if(o.type==="skull"){
+        ctx.fillStyle="#aaa";
+        ctx.beginPath();
+        ctx.arc(o.x+20,o.y+20,20,0,Math.PI*2);
+        ctx.fill();
     }
-    ctx.fillRect(o.x, o.y, o.w, o.h);
 }
 
-function collision(a, b) {
-    return a.x < b.x + b.w &&
-           a.x + a.w > b.x &&
-           a.y < b.y + b.h &&
-           a.y + a.h > b.y;
+function hit(a,b){
+    return a.x<a.x+a.w &&
+           a.x+a.w>b.x &&
+           a.y<a.y+a.h &&
+           a.y+a.h>b.y &&
+           a.x<b.x+b.w &&
+           a.y<b.y+b.h;
 }
 
-function gameLoop() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+function loop(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    frame++;
 
-    if (gameRunning) {
-        // Dino physics
-        dino.vy += gravity;
-        dino.y += dino.vy;
-        if (dino.y > 220) {
-            dino.y = 220;
-            dino.vy = 0;
+    // ground
+    ctx.fillStyle="#333";
+    ctx.fillRect(0,ground,canvas.width,5);
+
+    if(running){
+        dino.vy+=gravity;
+        dino.y+=dino.vy;
+        if(dino.y>ground-dino.h){
+            dino.y=ground-dino.h;
+            dino.vy=0;
         }
 
-        // Spawn obstacle
-        if (Math.random() < 0.02) {
-            obstacles.push(randomObstacle());
+        if(frame%8===0) dino.leg=!dino.leg;
+
+        spawnCooldown--;
+        if(spawnCooldown<=0){
+            obstacles.push(spawnObstacle());
+            spawnCooldown=80+Math.random()*80; // xa hơn
         }
 
-        // Obstacles update
-        for (let i = obstacles.length - 1; i >= 0; i--) {
-            obstacles[i].x -= speed;
-            drawObstacle(obstacles[i]);
+        for(let i=obstacles.length-1;i>=0;i--){
+            const o=obstacles[i];
+            o.x-=speed;
+            drawObstacle(o);
 
-            if (collision(dino, obstacles[i])) {
-                gameRunning = false;
-                document.getElementById("ui").style.display = "block";
-                document.getElementById("countdown").innerText = "GAME OVER\nScore: " + score;
+            if(hit(dino,o)){
+                running=false;
+                document.getElementById("ui").style.display="block";
+                document.getElementById("text").innerText="GAME OVER\nScore: "+score;
             }
 
-            if (obstacles[i].x + obstacles[i].w < 0) {
-                obstacles.splice(i, 1);
+            if(o.x+o.w<0){
+                obstacles.splice(i,1);
                 score++;
+                speed=baseSpeed+score*0.15; // tăng dần
             }
         }
 
         drawDino();
 
-        ctx.fillStyle = "white";
-        ctx.fillText("Score: " + score, 650, 30);
+        ctx.fillStyle="white";
+        ctx.fillText("Score: "+score,20,30);
     }
 
-    requestAnimationFrame(gameLoop);
+    requestAnimationFrame(loop);
 }
 
-gameLoop();
+loop();
 </script>
-
 </body>
 </html>
