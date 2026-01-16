@@ -2,28 +2,28 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Dino Jump Game</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dino Survival</title>
 <style>
     body {
         margin: 0;
-        background: #f7f7f7;
+        background: #111;
         display: flex;
         justify-content: center;
         align-items: center;
         height: 100vh;
+        color: white;
         font-family: Arial, sans-serif;
     }
     canvas {
-        background: #fff;
-        border: 3px solid #000;
+        background: linear-gradient(#222, #000);
+        border: 2px solid #555;
     }
-    .overlay {
+    #ui {
         position: absolute;
         text-align: center;
     }
     button {
-        padding: 12px 30px;
+        padding: 12px 25px;
         font-size: 18px;
         cursor: pointer;
     }
@@ -31,136 +31,147 @@
 </head>
 <body>
 
-<div class="overlay" id="menu">
-    <h1>DINO JUMP 🦖</h1>
-    <button onclick="startCountdown()">START</button>
+<div id="ui">
+    <h1>DINO SURVIVAL</h1>
+    <button onclick="startGame()">START</button>
+    <h2 id="countdown"></h2>
 </div>
 
-<canvas id="game" width="600" height="200"></canvas>
+<canvas id="game" width="800" height="300"></canvas>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-const menu = document.getElementById("menu");
 
-let dino, cactus;
-let gravity = 0.6;
+let gameRunning = false;
+let gravity = 0.8;
 let speed = 6;
 let score = 0;
-let playing = false;
-let countdown = 3;
 
-function resetGame() {
-    dino = { x: 50, y: 150, w: 30, h: 30, v: 0, jump: false };
-    cactus = { x: canvas.width, y: 150, w: 20, h: 40 };
-    score = 0;
-    speed = 6;
-}
+const dino = {
+    x: 80,
+    y: 220,
+    w: 40,
+    h: 50,
+    vy: 0,
+    jump() {
+        if (this.y >= 220) this.vy = -15;
+    }
+};
 
-resetGame();
+let obstacles = [];
 
 document.addEventListener("keydown", e => {
-    if (e.code === "Space" && playing && !dino.jump) {
-        jump();
-    }
+    if (e.code === "Space") dino.jump();
 });
 
-canvas.addEventListener("click", () => {
-    if (playing && !dino.jump) jump();
-});
+function startGame() {
+    document.getElementById("ui").style.display = "block";
+    let count = 3;
+    document.getElementById("countdown").innerText = count;
 
-function jump() {
-    dino.v = -11;
-    dino.jump = true;
-}
-
-function startCountdown() {
-    menu.innerHTML = `<h1>${countdown}</h1>`;
     const timer = setInterval(() => {
-        countdown--;
-        if (countdown > 0) {
-            menu.innerHTML = `<h1>${countdown}</h1>`;
+        count--;
+        if (count > 0) {
+            document.getElementById("countdown").innerText = count;
         } else {
             clearInterval(timer);
-            menu.style.display = "none";
-            countdown = 3;
-            playing = true;
+            document.getElementById("ui").style.display = "none";
             resetGame();
-            update();
+            gameRunning = true;
         }
     }, 1000);
 }
 
-function drawGround() {
-    ctx.fillStyle = "#000";
-    ctx.fillRect(0, 180, canvas.width, 2);
+function resetGame() {
+    obstacles = [];
+    score = 0;
+    dino.y = 220;
+    dino.vy = 0;
+}
+
+function randomObstacle() {
+    const type = Math.floor(Math.random() * 3);
+
+    if (type === 0) {
+        // XƯƠNG
+        return { x: 800, y: 230, w: 40, h: 40, type: "bone" };
+    }
+    if (type === 1) {
+        // DUNG NHAM
+        return { x: 800, y: 240, w: 50, h: 30, type: "lava" };
+    }
+    // ĐẦU LÂU
+    return { x: 800, y: 235, w: 35, h: 35, type: "skull" };
 }
 
 function drawDino() {
-    ctx.fillStyle = "#000";
+    ctx.fillStyle = "#0f0";
     ctx.fillRect(dino.x, dino.y, dino.w, dino.h);
 }
 
-function drawCactus() {
-    ctx.fillStyle = "green";
-    ctx.fillRect(cactus.x, cactus.y, cactus.w, cactus.h);
+function drawObstacle(o) {
+    if (o.type === "bone") {
+        ctx.fillStyle = "#ccc";
+    } else if (o.type === "lava") {
+        ctx.fillStyle = "red";
+    } else {
+        ctx.fillStyle = "#aaa";
+    }
+    ctx.fillRect(o.x, o.y, o.w, o.h);
 }
 
-function drawScore() {
-    ctx.font = "16px Arial";
-    ctx.fillText("Score: " + score, 10, 20);
+function collision(a, b) {
+    return a.x < b.x + b.w &&
+           a.x + a.w > b.x &&
+           a.y < b.y + b.h &&
+           a.y + a.h > b.y;
 }
 
-function gameOver() {
-    playing = false;
-    menu.style.display = "block";
-    menu.innerHTML = `
-        <h1>GAME OVER</h1>
-        <p>Score: ${score}</p>
-        <button onclick="startCountdown()">RESTART</button>
-    `;
-}
-
-function update() {
-    if (!playing) return;
-
+function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Dino physics
-    dino.v += gravity;
-    dino.y += dino.v;
-    if (dino.y >= 150) {
-        dino.y = 150;
-        dino.v = 0;
-        dino.jump = false;
+    if (gameRunning) {
+        // Dino physics
+        dino.vy += gravity;
+        dino.y += dino.vy;
+        if (dino.y > 220) {
+            dino.y = 220;
+            dino.vy = 0;
+        }
+
+        // Spawn obstacle
+        if (Math.random() < 0.02) {
+            obstacles.push(randomObstacle());
+        }
+
+        // Obstacles update
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+            obstacles[i].x -= speed;
+            drawObstacle(obstacles[i]);
+
+            if (collision(dino, obstacles[i])) {
+                gameRunning = false;
+                document.getElementById("ui").style.display = "block";
+                document.getElementById("countdown").innerText = "GAME OVER\nScore: " + score;
+            }
+
+            if (obstacles[i].x + obstacles[i].w < 0) {
+                obstacles.splice(i, 1);
+                score++;
+            }
+        }
+
+        drawDino();
+
+        ctx.fillStyle = "white";
+        ctx.fillText("Score: " + score, 650, 30);
     }
 
-    // Cactus move
-    cactus.x -= speed;
-    if (cactus.x < -cactus.w) {
-        cactus.x = canvas.width + Math.random() * 200;
-        score++;
-        if (score % 5 === 0) speed += 0.5; // tăng độ khó
-    }
-
-    // Collision
-    if (
-        dino.x < cactus.x + cactus.w &&
-        dino.x + dino.w > cactus.x &&
-        dino.y < cactus.y + cactus.h &&
-        dino.y + dino.h > cactus.y
-    ) {
-        gameOver();
-        return;
-    }
-
-    drawGround();
-    drawDino();
-    drawCactus();
-    drawScore();
-
-    requestAnimationFrame(update);
+    requestAnimationFrame(gameLoop);
 }
+
+gameLoop();
 </script>
 
 </body>
