@@ -1,37 +1,155 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Catch the Square — luck08-gif</title>
-  <link rel="stylesheet" href="styles.css">
+<meta charset="UTF-8">
+<title>Flappy Bird</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    body {
+        margin: 0;
+        background: #70c5ce;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        font-family: Arial, sans-serif;
+    }
+    canvas {
+        background: linear-gradient(#70c5ce, #ffffff);
+        border: 3px solid #000;
+    }
+</style>
 </head>
 <body>
-  <main class="card">
-    <h1>Catch the Square</h1>
-    <p class="lead">Click hoặc chạm vào ô vuông để ghi điểm. Cố gắng đạt điểm cao nhất trong thời gian!</p>
 
-    <div class="hud">
-      <div>Time: <span id="time">30</span>s</div>
-      <div>Score: <span id="score">0</span></div>
-      <div>Best: <span id="best">0</span></div>
-    </div>
+<canvas id="game" width="320" height="480"></canvas>
 
-    <div id="gameArea" class="game-area" aria-label="game area">
-      <!-- ô vuông sẽ xuất hiện ở đây -->
-    </div>
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-    <div class="controls">
-      <button id="startBtn">Start</button>
-      <button id="restartBtn" disabled>Restart</button>
-      <label class="speed">Speed:
-        <input id="speedRange" type="range" min="300" max="1000" step="50" value="700">
-      </label>
-    </div>
+let bird = {
+    x: 50,
+    y: 200,
+    r: 12,
+    v: 0
+};
 
-    <footer>Made with ♥ — GitHub Pages</footer>
-  </main>
+let gravity = 0.5;
+let jump = -8;
+let pipes = [];
+let frame = 0;
+let score = 0;
+let gameOver = false;
 
-  <script src="catch.js" defer></script>
+function resetGame() {
+    bird.y = 200;
+    bird.v = 0;
+    pipes = [];
+    score = 0;
+    frame = 0;
+    gameOver = false;
+}
+
+document.addEventListener("keydown", e => {
+    if (e.code === "Space") bird.v = jump;
+});
+
+canvas.addEventListener("click", () => {
+    if (gameOver) resetGame();
+    bird.v = jump;
+});
+
+function drawBird() {
+    ctx.beginPath();
+    ctx.arc(bird.x, bird.y, bird.r, 0, Math.PI * 2);
+    ctx.fillStyle = "yellow";
+    ctx.fill();
+}
+
+function drawPipes() {
+    pipes.forEach(p => {
+        ctx.fillStyle = "green";
+        ctx.fillRect(p.x, 0, 40, p.top);
+        ctx.fillRect(p.x, p.bottom, 40, canvas.height - p.bottom);
+    });
+}
+
+function updatePipes() {
+    if (frame % 90 === 0) {
+        let top = Math.random() * 200 + 50;
+        let gap = 120;
+        pipes.push({
+            x: canvas.width,
+            top: top,
+            bottom: top + gap,
+            passed: false
+        });
+    }
+
+    pipes.forEach(p => {
+        p.x -= 2;
+
+        // collision
+        if (
+            bird.x + bird.r > p.x &&
+            bird.x - bird.r < p.x + 40 &&
+            (bird.y - bird.r < p.top || bird.y + bird.r > p.bottom)
+        ) {
+            gameOver = true;
+        }
+
+        if (!p.passed && p.x + 40 < bird.x) {
+            score++;
+            p.passed = true;
+        }
+    });
+
+    pipes = pipes.filter(p => p.x + 40 > 0);
+}
+
+function drawScore() {
+    ctx.fillStyle = "#000";
+    ctx.font = "20px Arial";
+    ctx.fillText("Score: " + score, 10, 30);
+}
+
+function drawGameOver() {
+    ctx.fillStyle = "rgba(0,0,0,0.7)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#fff";
+    ctx.font = "28px Arial";
+    ctx.fillText("GAME OVER", 70, 220);
+    ctx.font = "16px Arial";
+    ctx.fillText("Click to restart", 95, 260);
+}
+
+function update() {
+    if (gameOver) {
+        drawGameOver();
+        return;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    bird.v += gravity;
+    bird.y += bird.v;
+
+    if (bird.y + bird.r > canvas.height || bird.y - bird.r < 0) {
+        gameOver = true;
+    }
+
+    updatePipes();
+    drawPipes();
+    drawBird();
+    drawScore();
+
+    frame++;
+    requestAnimationFrame(update);
+}
+
+update();
+</script>
+
 </body>
 </html>
